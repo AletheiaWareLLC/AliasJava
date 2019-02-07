@@ -22,7 +22,7 @@ mkdir out
 
 SOURCES=(
     source/com/aletheiaware/alias/AliasProto.java
-#    source/com/aletheiaware/alias/utils/AliasUtils.java
+    source/com/aletheiaware/alias/utils/AliasUtils.java
 )
 
 javac -cp libs/BCJava.jar:libs/protobuf-lite-3.0.1.jar ${SOURCES[*]} -d out

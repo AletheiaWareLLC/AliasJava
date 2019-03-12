@@ -17,15 +17,23 @@
 package com.aletheiaware.alias.utils;
 
 import com.aletheiaware.alias.AliasProto.Alias;
+import com.aletheiaware.bc.BC.Channel;
+import com.aletheiaware.bc.BC.Channel.EntryCallback;
+import com.aletheiaware.bc.BCProto.Block;
+import com.aletheiaware.bc.BCProto.BlockEntry;
 import com.aletheiaware.bc.BCProto.PublicKeyFormat;
+import com.aletheiaware.bc.BCProto.Record;
+import com.aletheiaware.bc.BCProto.Reference;
 import com.aletheiaware.bc.BCProto.SignatureAlgorithm;
 import com.aletheiaware.bc.utils.BCUtils;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -34,10 +42,13 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.HttpsURLConnection;
 
 public final class AliasUtils {
+
+    public static final String ALIAS_CHANNEL = "Alias";
 
     private AliasUtils() {}
 
@@ -87,5 +98,42 @@ public final class AliasUtils {
         while (in.hasNextLine()) {
             System.out.println(in.nextLine());
         }
+    }
+
+    /**
+     * Returns true iff the given alias is unique (has not already been registered)
+     */
+    public static boolean isUnique(InetAddress address, String alias) throws IOException {
+        Reference head = BCUtils.getHead(address, Reference.newBuilder()
+                .setChannelName(ALIAS_CHANNEL)
+                .build());
+        if (head != null) {
+            ByteString bh = head.getBlockHash();
+            while (bh != null && !bh.isEmpty()) {
+                Block b = BCUtils.getBlock(address, Reference.newBuilder()
+                        .setBlockHash(bh)
+                        .setChannelName(ALIAS_CHANNEL)
+                        .build());
+                if (b == null) {
+                    break;
+                }
+                for (BlockEntry e : b.getEntryList()) {
+                    Record r = e.getRecord();
+                    ByteString p = r.getPayload();
+                    Alias.Builder ab = Alias.newBuilder();
+                    try {
+                        ab.mergeFrom(p);
+                    } catch (InvalidProtocolBufferException ex) {
+                        ex.printStackTrace();
+                    }
+                    Alias a = ab.build();
+                    if (a.getAlias().equals(alias)) {
+                        return false;
+                    }
+                }
+                bh = b.getPrevious();
+            }
+        }
+        return true;
     }
 }

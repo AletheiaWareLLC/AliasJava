@@ -38,9 +38,14 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -101,6 +106,95 @@ public final class AliasUtils {
     }
 
     /**
+     * Returns the public associated with the given alias
+     */
+    public static PublicKey getPublicKey(final Channel aliases, final String alias) throws IOException {
+        final PublicKey[] result = { null };
+        aliases.iterate(new EntryCallback() {
+            @Override
+            public boolean onEntry(ByteString blockHash, Block block, BlockEntry entry) {
+                Alias.Builder ab = Alias.newBuilder();
+                try {
+                    ab.mergeFrom(entry.getRecord().getPayload());
+                } catch (InvalidProtocolBufferException ex) {
+                    ex.printStackTrace();
+                }
+                Alias a = ab.build();
+                if (a.getAlias().equals(alias)) {
+                    try {
+                        result[0] = bytesToPublicKey(a.getPublicKey().toByteArray(), a.getPublicFormat());
+                    } catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    }
+                    return false;
+                }
+                return true;
+            }
+        });
+        return result[0];
+    }
+
+    /**
+     * Returns the public associated with the given alias
+     */
+    public static PublicKey getPublicKey(InetAddress address, String alias) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
+        Reference head = BCUtils.getHead(address, Reference.newBuilder()
+                .setChannelName(ALIAS_CHANNEL)
+                .build());
+        if (head != null) {
+            ByteString bh = head.getBlockHash();
+            while (bh != null && !bh.isEmpty()) {
+                Block b = BCUtils.getBlock(address, Reference.newBuilder()
+                        .setBlockHash(bh)
+                        .setChannelName(ALIAS_CHANNEL)
+                        .build());
+                if (b == null) {
+                    break;
+                }
+                for (BlockEntry e : b.getEntryList()) {
+                    Alias.Builder ab = Alias.newBuilder();
+                    try {
+                        ab.mergeFrom(e.getRecord().getPayload());
+                    } catch (InvalidProtocolBufferException ex) {
+                        ex.printStackTrace();
+                    }
+                    Alias a = ab.build();
+                    if (a.getAlias().equals(alias)) {
+                        return bytesToPublicKey(a.getPublicKey().toByteArray(), a.getPublicFormat());
+                    }
+                }
+                bh = b.getPrevious();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns true iff the given alias is unique (has not already been registered)
+     */
+    public static boolean isUnique(final Channel aliases, final String alias) throws IOException {
+        Boolean[] result = { true };
+        aliases.iterate(new EntryCallback() {
+            @Override
+            public boolean onEntry(ByteString blockHash, Block block, BlockEntry entry) {
+                Alias.Builder ab = Alias.newBuilder();
+                try {
+                    ab.mergeFrom(entry.getRecord().getPayload());
+                } catch (InvalidProtocolBufferException ex) {
+                    ex.printStackTrace();
+                }
+                Alias a = ab.build();
+                if (a.getAlias().equals(alias)) {
+                    result[0] = false;
+                    return false;
+                }
+                return true;
+            }
+        });
+        return result[0];
+    }
+
+    /**
      * Returns true iff the given alias is unique (has not already been registered)
      */
     public static boolean isUnique(InetAddress address, String alias) throws IOException {
@@ -118,11 +212,9 @@ public final class AliasUtils {
                     break;
                 }
                 for (BlockEntry e : b.getEntryList()) {
-                    Record r = e.getRecord();
-                    ByteString p = r.getPayload();
                     Alias.Builder ab = Alias.newBuilder();
                     try {
-                        ab.mergeFrom(p);
+                        ab.mergeFrom(e.getRecord().getPayload());
                     } catch (InvalidProtocolBufferException ex) {
                         ex.printStackTrace();
                     }
@@ -135,5 +227,19 @@ public final class AliasUtils {
             }
         }
         return true;
+    }
+
+    private static PublicKey bytesToPublicKey(byte[] key, PublicKeyFormat format) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
+        KeySpec publicSpec = null;
+        switch (format) {
+            case PKIX:
+            case X509:
+                publicSpec = new X509EncodedKeySpec(key);
+                break;
+            case UNKNOWN_PUBLIC_KEY_FORMAT:
+            default:
+                throw new IOException("Unknown public key format: " + format);
+        }
+        return KeyFactory.getInstance(BCUtils.RSA).generatePublic(publicSpec);
     }
 }

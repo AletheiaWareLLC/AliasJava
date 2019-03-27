@@ -82,7 +82,7 @@ public final class AliasUtils {
                 + "&signatureAlgorithm=" + URLEncoder.encode(SignatureAlgorithm.SHA512WITHRSA.toString(), "utf-8");
         System.out.println("Params:" + params);
         byte[] data = params.getBytes(StandardCharsets.UTF_8);
-        URL url = new URL(BCUtils.BC_WEBSITE + "/alias");
+        URL url = new URL(BCUtils.BC_WEBSITE + "/alias-register");
         System.out.println("URL:" + url);
         HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setDoOutput(true);

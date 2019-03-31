@@ -60,7 +60,7 @@ public final class AliasUtils {
     /**
      * Registers the alias and public key (private key used for signature).
      */
-    public static void registerAlias(String alias, KeyPair keys) throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException {
+    public static void registerAlias(String host, String alias, KeyPair keys) throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException {
         byte[] publicKeyBytes = keys.getPublic().getEncoded();
         String publicKey = new String(BCUtils.encodeBase64URL(publicKeyBytes));
         Alias.Builder ab = Alias.newBuilder()
@@ -82,7 +82,7 @@ public final class AliasUtils {
                 + "&signatureAlgorithm=" + URLEncoder.encode(SignatureAlgorithm.SHA512WITHRSA.toString(), "utf-8");
         System.out.println("Params:" + params);
         byte[] data = params.getBytes(StandardCharsets.UTF_8);
-        URL url = new URL(BCUtils.BC_WEBSITE + "/alias-register");
+        URL url = new URL(host + "/alias-register");
         System.out.println("URL:" + url);
         HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setDoOutput(true);

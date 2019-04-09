@@ -17,7 +17,9 @@
 set -e
 set -x
 
-rm -r out
+if [ -d out ]; then
+    rm -r out
+fi
 mkdir out
 
 SOURCES=(

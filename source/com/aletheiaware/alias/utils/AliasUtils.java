@@ -17,15 +17,19 @@
 package com.aletheiaware.alias.utils;
 
 import com.aletheiaware.alias.AliasProto.Alias;
-import com.aletheiaware.bc.BC.Channel;
-import com.aletheiaware.bc.BC.Channel.EntryCallback;
 import com.aletheiaware.bc.BCProto.Block;
 import com.aletheiaware.bc.BCProto.BlockEntry;
 import com.aletheiaware.bc.BCProto.PublicKeyFormat;
 import com.aletheiaware.bc.BCProto.Record;
 import com.aletheiaware.bc.BCProto.Reference;
 import com.aletheiaware.bc.BCProto.SignatureAlgorithm;
+import com.aletheiaware.bc.Cache;
+import com.aletheiaware.bc.Channel;
+import com.aletheiaware.bc.Channel.EntryCallback;
+import com.aletheiaware.bc.Crypto;
+import com.aletheiaware.bc.Network;
 import com.aletheiaware.bc.utils.BCUtils;
+import com.aletheiaware.bc.utils.ChannelUtils;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -64,17 +68,17 @@ public final class AliasUtils {
         byte[] publicKeyBytes = keys.getPublic().getEncoded();
         String publicKey = new String(BCUtils.encodeBase64URL(publicKeyBytes));
         Alias.Builder ab = Alias.newBuilder()
-            .setAlias(alias)
-            .setPublicKey(ByteString.copyFrom(publicKeyBytes));
+                .setAlias(alias)
+                .setPublicKey(ByteString.copyFrom(publicKeyBytes));
         String publicKeyFormat = keys.getPublic().getFormat().replaceAll("\\.", "");// Remove dot from X.509
-        switch(publicKeyFormat) {
+        switch (publicKeyFormat) {
             case "X509":
                 ab.setPublicFormat(PublicKeyFormat.X509);
                 break;
             default:
                 System.out.println("Unsupported Public Key Format: " + publicKeyFormat);
         }
-        byte[] signature = BCUtils.sign(keys.getPrivate(), ab.build().toByteArray());
+        byte[] signature = Crypto.sign(keys.getPrivate(), ab.build().toByteArray());
         String params = "alias=" + URLEncoder.encode(alias, "utf-8")
                 + "&publicKey=" + URLEncoder.encode(publicKey, "utf-8")
                 + "&publicKeyFormat=" + URLEncoder.encode(publicKeyFormat, "utf-8")
@@ -83,14 +87,13 @@ public final class AliasUtils {
         System.out.println("Params:" + params);
         byte[] data = params.getBytes(StandardCharsets.UTF_8);
         URL url = new URL(host + "/alias-register");
-        System.out.println("URL:" + url);
         HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setDoOutput(true);
         conn.setInstanceFollowRedirects(false);
         conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Length", Integer.toString(data.length));
         conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
         conn.setRequestProperty("charset", "utf-8");
-        conn.setRequestProperty("Content-Length", Integer.toString(data.length));
         conn.setUseCaches(false);
         try (OutputStream o = conn.getOutputStream()) {
             o.write(data);
@@ -106,48 +109,14 @@ public final class AliasUtils {
     }
 
     /**
-     * Returns the public associated with the given alias
+     * Returns the public associated with the given alias.
      */
-    public static PublicKey getPublicKey(final Channel aliases, final String alias) throws IOException {
-        final PublicKey[] result = { null };
-        aliases.iterate(new EntryCallback() {
-            @Override
-            public boolean onEntry(ByteString blockHash, Block block, BlockEntry entry) {
-                Alias.Builder ab = Alias.newBuilder();
-                try {
-                    ab.mergeFrom(entry.getRecord().getPayload());
-                } catch (InvalidProtocolBufferException ex) {
-                    ex.printStackTrace();
-                }
-                Alias a = ab.build();
-                if (a.getAlias().equals(alias)) {
-                    try {
-                        result[0] = bytesToPublicKey(a.getPublicKey().toByteArray(), a.getPublicFormat());
-                    } catch (IOException | InvalidKeySpecException | NoSuchAlgorithmException e) {
-                        e.printStackTrace();
-                    }
-                    return false;
-                }
-                return true;
-            }
-        });
-        return result[0];
-    }
-
-    /**
-     * Returns the public associated with the given alias
-     */
-    public static PublicKey getPublicKey(InetAddress address, String alias) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
-        Reference head = BCUtils.getHead(address, Reference.newBuilder()
-                .setChannelName(ALIAS_CHANNEL)
-                .build());
+    public static PublicKey getPublicKey(Cache cache, Network network, String alias) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
+        Reference head = ChannelUtils.getHeadReference(ALIAS_CHANNEL, cache, network);
         if (head != null) {
             ByteString bh = head.getBlockHash();
             while (bh != null && !bh.isEmpty()) {
-                Block b = BCUtils.getBlock(address, Reference.newBuilder()
-                        .setBlockHash(bh)
-                        .setChannelName(ALIAS_CHANNEL)
-                        .build());
+                Block b = ChannelUtils.getBlock(ALIAS_CHANNEL, cache, network, bh);
                 if (b == null) {
                     break;
                 }
@@ -170,44 +139,14 @@ public final class AliasUtils {
     }
 
     /**
-     * Returns true iff the given alias is unique (has not already been registered)
+     * Returns true iff the given alias is unique (has not already been registered).
      */
-    public static boolean isUnique(final Channel aliases, final String alias) throws IOException {
-        Boolean[] result = { true };
-        aliases.iterate(new EntryCallback() {
-            @Override
-            public boolean onEntry(ByteString blockHash, Block block, BlockEntry entry) {
-                Alias.Builder ab = Alias.newBuilder();
-                try {
-                    ab.mergeFrom(entry.getRecord().getPayload());
-                } catch (InvalidProtocolBufferException ex) {
-                    ex.printStackTrace();
-                }
-                Alias a = ab.build();
-                if (a.getAlias().equals(alias)) {
-                    result[0] = false;
-                    return false;
-                }
-                return true;
-            }
-        });
-        return result[0];
-    }
-
-    /**
-     * Returns true iff the given alias is unique (has not already been registered)
-     */
-    public static boolean isUnique(InetAddress address, String alias) throws IOException {
-        Reference head = BCUtils.getHead(address, Reference.newBuilder()
-                .setChannelName(ALIAS_CHANNEL)
-                .build());
+    public static boolean isUnique(Cache cache, Network network, String alias) throws IOException {
+        Reference head = ChannelUtils.getHeadReference(ALIAS_CHANNEL, cache, network);
         if (head != null) {
             ByteString bh = head.getBlockHash();
             while (bh != null && !bh.isEmpty()) {
-                Block b = BCUtils.getBlock(address, Reference.newBuilder()
-                        .setBlockHash(bh)
-                        .setChannelName(ALIAS_CHANNEL)
-                        .build());
+                Block b = ChannelUtils.getBlock(ALIAS_CHANNEL, cache, network, bh);
                 if (b == null) {
                     break;
                 }
@@ -240,6 +179,6 @@ public final class AliasUtils {
             default:
                 throw new IOException("Unknown public key format: " + format);
         }
-        return KeyFactory.getInstance(BCUtils.RSA).generatePublic(publicSpec);
+        return KeyFactory.getInstance(Crypto.RSA).generatePublic(publicSpec);
     }
 }

@@ -20,7 +20,8 @@ set -x
 if [ -d out ]; then
     rm -r out
 fi
-mkdir out
+mkdir -p out/code
+mkdir -p out/test
 
 SOURCES=(
     source/com/aletheiaware/alias/utils/AliasUtils.java
@@ -31,8 +32,8 @@ PROTO_SOURCES=(
 )
 
 # Compile code
-javac -cp libs/BCJava.jar:libs/protobuf-lite-3.0.1.jar ${SOURCES[*]} ${PROTO_SOURCES[*]} -d out
-jar cvf out/AliasJava.jar -C out .
+javac -cp libs/BCJava.jar:libs/protobuf-lite-3.0.1.jar ${SOURCES[*]} ${PROTO_SOURCES[*]} -d out/code
+jar cvf out/AliasJava.jar -C out/code .
 
 TEST_SOURCES=(
     test/source/com/aletheiaware/alias/AllTests.java
@@ -40,8 +41,8 @@ TEST_SOURCES=(
 )
 
 # Compile tests
-javac -cp libs/BCJava.jar:libs/protobuf-lite-3.0.1.jar:libs/junit-4.12.jar:libs/hamcrest-core-1.3.jar:libs/mockito-all-1.10.19.jar:out/AliasJava.jar ${TEST_SOURCES[*]} -d out
-jar cvf out/AliasJavaTest.jar -C out .
+javac -cp libs/BCJava.jar:libs/protobuf-lite-3.0.1.jar:libs/junit-4.12.jar:libs/hamcrest-core-1.3.jar:libs/mockito-all-1.10.19.jar:out/AliasJava.jar ${TEST_SOURCES[*]} -d out/test
+jar cvf out/AliasJavaTest.jar -C out/test .
 
 # Run tests
 java -cp libs/BCJava.jar:libs/protobuf-lite-3.0.1.jar:libs/junit-4.12.jar:libs/hamcrest-core-1.3.jar:libs/mockito-all-1.10.19.jar:out/AliasJava.jar:out/AliasJavaTest.jar org.junit.runner.JUnitCore com.aletheiaware.alias.AllTests

@@ -28,8 +28,8 @@ import com.aletheiaware.bc.Channel;
 import com.aletheiaware.bc.Channel.EntryCallback;
 import com.aletheiaware.bc.Crypto;
 import com.aletheiaware.bc.Network;
-import com.aletheiaware.bc.utils.BCUtils;
 import com.aletheiaware.bc.utils.ChannelUtils;
+import com.aletheiaware.common.utils.CommonUtils;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -74,7 +74,7 @@ public final class AliasUtils {
             throw new IllegalArgumentException(String.format(ERROR_ALIAS_TOO_LONG, length, MAX_ALIAS_LENGTH));
         }
         byte[] publicKeyBytes = keys.getPublic().getEncoded();
-        String publicKey = new String(BCUtils.encodeBase64URL(publicKeyBytes));
+        String publicKey = new String(CommonUtils.encodeBase64URL(publicKeyBytes));
         Alias.Builder ab = Alias.newBuilder()
                 .setAlias(alias)
                 .setPublicKey(ByteString.copyFrom(publicKeyBytes));
@@ -90,7 +90,7 @@ public final class AliasUtils {
         String params = "alias=" + URLEncoder.encode(alias, "utf-8")
                 + "&publicKey=" + URLEncoder.encode(publicKey, "utf-8")
                 + "&publicKeyFormat=" + URLEncoder.encode(publicKeyFormat, "utf-8")
-                + "&signature=" + URLEncoder.encode(new String(BCUtils.encodeBase64URL(signature)), "utf-8")
+                + "&signature=" + URLEncoder.encode(new String(CommonUtils.encodeBase64URL(signature)), "utf-8")
                 + "&signatureAlgorithm=" + URLEncoder.encode(SignatureAlgorithm.SHA512WITHRSA.toString(), "utf-8");
         System.out.println("Params:" + params);
         byte[] data = params.getBytes(StandardCharsets.UTF_8);

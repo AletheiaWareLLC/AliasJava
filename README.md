@@ -15,7 +15,7 @@ Libraries
 Protocol Buffers
 
     cd <path/to/Alias>
-    ./build.sh --javalite_out=<path/to/AliasJava>/source/
+    ./build.sh --java_out=lite:<path/to/AliasJava>/source/
 
 Build
 =====

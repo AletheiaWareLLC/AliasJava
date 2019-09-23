@@ -5,12 +5,12 @@ This is a Java implementation of Alias using the BC data structures.
 
 Setup
 =====
-Libraries
+AliasJava should be in the same parent directory as the following prerequisite projects;
 
-    mkdir libs
-    ln -s <awcommonjavalib> libs/AletheiaWareCommonJava.jar
-    ln -s <bcjavalib> libs/BCJava.jar
-    ln -s <protolib> libs/protobuf-lite-3.0.1.jar
+    AletheiaWareCommonJava
+    Alias
+    BCJava
+    JavaCommon
 
 Protocol Buffers
 

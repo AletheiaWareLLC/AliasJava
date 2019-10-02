@@ -176,7 +176,7 @@ public final class AliasUtils {
         return true;
     }
 
-    private static PublicKey bytesToPublicKey(byte[] key, PublicKeyFormat format) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
+    public static PublicKey bytesToPublicKey(byte[] key, PublicKeyFormat format) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
         KeySpec publicSpec = null;
         switch (format) {
             case PKIX:

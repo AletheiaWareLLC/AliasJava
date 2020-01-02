@@ -32,7 +32,7 @@ PROTO_SOURCES=(
 )
 
 # Compile code
-javac -cp ../AletheiaWareCommonJava/out/AletheiaWareCommonJava.jar:../BCJava/out/BCJava.jar:../JavaCommon/libs/protobuf-java-3.9.1.jar ${SOURCES[*]} ${PROTO_SOURCES[*]} -d out/code
+javac -cp ../AletheiaWareCommonJava/out/AletheiaWareCommonJava.jar:../CryptoJava/out/CryptoJava.jar:../BCJava/out/BCJava.jar:../JavaCommon/libs/protobuf-java-3.9.1.jar ${SOURCES[*]} ${PROTO_SOURCES[*]} -d out/code
 jar cvf out/AliasJava.jar -C out/code .
 
 TEST_SOURCES=(
@@ -41,11 +41,11 @@ TEST_SOURCES=(
 )
 
 # Compile tests
-javac -cp ../AletheiaWareCommonJava/out/AletheiaWareCommonJava.jar:../BCJava/out/BCJava.jar:../JavaCommon/libs/protobuf-java-3.9.1.jar:../JavaCommon/libs/junit-4.12.jar:../JavaCommon/libs/hamcrest-core-2.1.jar:../JavaCommon/libs/mockito-all-1.10.19.jar:out/AliasJava.jar ${TEST_SOURCES[*]} -d out/test
+javac -cp ../AletheiaWareCommonJava/out/AletheiaWareCommonJava.jar:../CryptoJava/out/CryptoJava.jar:../BCJava/out/BCJava.jar:../JavaCommon/libs/protobuf-java-3.9.1.jar:../JavaCommon/libs/junit-4.12.jar:../JavaCommon/libs/hamcrest-core-2.1.jar:../JavaCommon/libs/mockito-all-1.10.19.jar:out/AliasJava.jar ${TEST_SOURCES[*]} -d out/test
 jar cvf out/AliasJavaTest.jar -C out/test .
 
 # Run tests
-java -cp ../AletheiaWareCommonJava/out/AletheiaWareCommonJava.jar:../BCJava/out/BCJava.jar:../JavaCommon/libs/protobuf-java-3.9.1.jar:../JavaCommon/libs/junit-4.12.jar:../JavaCommon/libs/hamcrest-core-2.1.jar:../JavaCommon/libs/mockito-all-1.10.19.jar:out/AliasJava.jar:out/AliasJavaTest.jar org.junit.runner.JUnitCore com.aletheiaware.alias.AllTests
+java -cp ../AletheiaWareCommonJava/out/AletheiaWareCommonJava.jar:../CryptoJava/out/CryptoJava.jar:../BCJava/out/BCJava.jar:../JavaCommon/libs/protobuf-java-3.9.1.jar:../JavaCommon/libs/junit-4.12.jar:../JavaCommon/libs/hamcrest-core-2.1.jar:../JavaCommon/libs/mockito-all-1.10.19.jar:out/AliasJava.jar:out/AliasJavaTest.jar org.junit.runner.JUnitCore com.aletheiaware.alias.AllTests
 
 # Checkstyle
 java -jar ../JavaCommon/libs/checkstyle-8.24-all.jar -c ../checkstyle.xml ${SOURCES[*]} ${TEST_SOURCES[*]} > out/style || true

@@ -10,6 +10,7 @@ AliasJava should be in the same parent directory as the following prerequisite p
     AletheiaWareCommonJava
     Alias
     BCJava
+    CryptoJava
     JavaCommon
 
 Protocol Buffers

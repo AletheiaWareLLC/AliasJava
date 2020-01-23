@@ -52,6 +52,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -59,20 +60,29 @@ public final class AliasUtils {
 
     public static final String ALIAS_CHANNEL = "Alias";
 
+    public static final String ERROR_ALIAS_CONTAINS_WHITESPACE = "Alias contains whitespace";
     public static final String ERROR_ALIAS_TOO_LONG = "Alias too long: %s max: %s";
 
     public static final int MAX_ALIAS_LENGTH = 100;
 
-    private AliasUtils() {}
+    private AliasUtils() {
+    }
+
+    public static void validateAlias(String alias) {
+        if (Pattern.compile("\\s").matcher(alias).find()) {
+            throw new IllegalArgumentException(ERROR_ALIAS_CONTAINS_WHITESPACE);
+        }
+        long length = alias.length();
+        if (length > MAX_ALIAS_LENGTH) {
+            throw new IllegalArgumentException(String.format(ERROR_ALIAS_TOO_LONG, length, MAX_ALIAS_LENGTH));
+        }
+    }
 
     /**
      * Registers the alias and public key (private key used for signature).
      */
     public static void registerAlias(String host, String alias, KeyPair keys) throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException {
-        long length = alias.length();
-        if (length > MAX_ALIAS_LENGTH) {
-            throw new IllegalArgumentException(String.format(ERROR_ALIAS_TOO_LONG, length, MAX_ALIAS_LENGTH));
-        }
+        validateAlias(alias);
         byte[] publicKeyBytes = keys.getPublic().getEncoded();
         String publicKey = new String(CommonUtils.encodeBase64URL(publicKeyBytes));
         Alias.Builder ab = Alias.newBuilder()
@@ -190,3 +200,4 @@ public final class AliasUtils {
         return KeyFactory.getInstance(Crypto.RSA).generatePublic(publicSpec);
     }
 }
+
